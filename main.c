@@ -20,14 +20,14 @@ typedef struct libnet_arp_hdr ARP;
 int* get_recover_time(pcap_t* pkDescriptor);
 char* get_interface_mac(char* interface);
 uint8_t* str_to_mac(char* str);
-uint8_t* str_to_ip(char* str1);
+uint32_t str_to_ip(char* str1);
 
 int main(int argc, char** argv)
 {
     char* interface;
     char errBuf[PCAP_ERRBUF_SIZE];
     uint8_t* sender_mac;
-    uint8_t* sender_ip, *target_ip;
+    uint32_t sender_ip, target_ip;
     uint8_t packet[42];
     pcap_t* pktDescriptor;
 
@@ -51,8 +51,8 @@ int main(int argc, char** argv)
     ARP reqHeader = {
         htons(ARPHRD_ETHER),htons(ETHERTYPE_IP),
         6,4,htons(ARPOP_REQUEST),
-        SIMPLE_SENDER_MAC, SIMPLE_SENDER_IP,
-        {0,0,0,0,0,0}, SIMPLE_TARGET_IP
+        SIMPLE_SENDER_MAC, htonl(sender_ip),
+        {0,0,0,0,0,0}, htonl(target_ip)
     };
 
     pktDescriptor = pcap_open_live(interface, MAX_IP_PACKET_SIZE, NON_PROMISCUOUS, TIME_OUT, errBuf);
@@ -62,9 +62,11 @@ int main(int argc, char** argv)
         printf(" [err] Can't open device. reason : %s\n", errBuf);
         return 1;
     }
+
     memcpy(packet, &ethHeader, 14);
     memcpy(packet+14, &reqHeader, 28);
-    //pcap_inject(pktDescriptor, packet, 42);
+//    pcap_inject(pktDescriptor, packet, 42);
+
     if (!pcap_sendpacket(pktDescriptor, packet, 42))
     {
        printf("error!");
@@ -82,14 +84,19 @@ uint8_t* str_to_mac(char* str)
 
     return arr;
 }
-uint8_t* str_to_ip(char* str)
+uint32_t str_to_ip(char* str)
 {
-    static uint8_t arr[4];
+    uint8_t arr[4];
+    uint32_t ipValue = 0;
 
     sscanf(str,"%d.%d.%d.%d"
            ,&arr[0],&arr[1],&arr[2],&arr[3]);
+    ipValue += (arr[0]<<24);
+    ipValue += (arr[1]<<16);
+    ipValue += (arr[2]<<8);
+    ipValue += (arr[3]);
 
-    return arr;
+    return ipValue;
 }
 
 int* get_recover_time(pcap_t* pktDescriptor)
