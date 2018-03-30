@@ -7,9 +7,7 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 
-#define SIMPLE_SENDER_MAC {sender_mac[0],sender_mac[1],sender_mac[2],sender_mac[3],sender_mac[4],sender_mac[5]}
-#define SIMPLE_SENDER_IP  {sender_ip[0],sender_ip[1],sender_ip[2],sender_ip[3]}
-#define SIMPLE_TARGET_IP  {target_ip[0],target_ip[1],target_ip[2],target_ip[3]}
+#define SIMPLE_SENDER_MAC   {sender_mac[0],sender_mac[1],sender_mac[2],sender_mac[3],sender_mac[4],sender_mac[5]}
 #define TIME_OUT            0xFF
 #define MAX_IP_PACKET_SIZE  0xFFFF
 #define NON_PROMISCUOUS     0
@@ -24,8 +22,8 @@ uint32_t str_to_ip(char* str1);
 
 int main(int argc, char** argv)
 {
-    char* interface;
-    char errBuf[PCAP_ERRBUF_SIZE];
+    char*   interface;
+    char    errBuf[PCAP_ERRBUF_SIZE];
     uint8_t* sender_mac;
     uint32_t sender_ip, target_ip;
     uint8_t packet[42];
@@ -33,16 +31,15 @@ int main(int argc, char** argv)
 
     if (argc != 4)
     {
-        printf("Usage : send_arp <interface><sender ip><target ip>\n");
+        printf("Usage : send_arp <interface><register ip><target ip>\n");
         return 1;
     }
-    // Init
+    // Initialize
     interface = argv[1];
     sender_mac = str_to_mac(get_interface_mac(interface));
     sender_ip = str_to_ip(argv[2]);
     target_ip = str_to_ip(argv[3]);
 
-    // make basic type
     ETH ethHeader = {
         "\xFF\xFF\xFF\xFF\xFF\xFF",
         SIMPLE_SENDER_MAC,
@@ -65,9 +62,8 @@ int main(int argc, char** argv)
 
     memcpy(packet, &ethHeader, 14);
     memcpy(packet+14, &reqHeader, 28);
-//    pcap_inject(pktDescriptor, packet, 42);
 
-    if (!pcap_sendpacket(pktDescriptor, packet, 42))
+    if (pcap_sendpacket(pktDescriptor, packet, 42))
     {
        printf("error!");
     }
@@ -91,11 +87,13 @@ uint32_t str_to_ip(char* str)
 
     sscanf(str,"%d.%d.%d.%d"
            ,&arr[0],&arr[1],&arr[2],&arr[3]);
+    ipValue = (arr[0]<<24) + (arr[1]<<16) + (arr[2]<<8) + (arr[3]);
+    /*
     ipValue += (arr[0]<<24);
     ipValue += (arr[1]<<16);
     ipValue += (arr[2]<<8);
     ipValue += (arr[3]);
-
+    */
     return ipValue;
 }
 
