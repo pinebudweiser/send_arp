@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <libnet.h>
 #include <pcap.h>
-#include <pthread.h>
 #include <arpa/inet.h>
 
 #define SIMPLE_SENDER_MAC   {sender_mac[0],sender_mac[1],sender_mac[2],sender_mac[3],sender_mac[4],sender_mac[5]}
@@ -16,15 +15,14 @@
 typedef struct libnet_802_3_hdr ETH;
 typedef struct libnet_arp_hdr ARP;
 
-int* get_recover_time(pcap_t* pkDescriptor);
 char* get_interface_mac(char* interface);
 uint8_t* str_to_mac(char* str);
 uint32_t str_to_ip(char* str);
 
 int main(int argc, char** argv)
 {
-    char    errBuf[PCAP_ERRBUF_SIZE];
-    char*   interface;
+    char errBuf[PCAP_ERRBUF_SIZE];
+    char* interface;
     uint8_t* sender_mac;
     uint32_t sender_ip, target_ip;
     uint8_t* packet;
@@ -51,7 +49,7 @@ int main(int argc, char** argv)
         printf(" [err] Can't open device. reason : %s\n", errBuf);
         return 1;
     }
-    /* stack high to low */
+    // stack high to low
     ARP reqHeader = {
         htons(ARPHRD_ETHER),htons(ETHERTYPE_IP),
         6,4,htons(ARPOP_REQUEST),
@@ -67,7 +65,8 @@ int main(int argc, char** argv)
 
     if (pcap_sendpacket(pktDescriptor, packet, MY_ARP_LEN))
     {
-       printf("error!");
+       printf(" [err] Can't send packet. reason : %s\n", pcap_geterr(pktDescriptor));
+       return 1;
     }
     pcap_close(pktDescriptor);
 
@@ -96,14 +95,6 @@ uint32_t str_to_ip(char* str)
     return ipValue;
 }
 
-int* get_recover_time(pcap_t* pktDescriptor)
-{
-    char* buf;
-    struct pcap_pkthdr* pktHeader;
-
-    return 0;
-}
-
 char* get_interface_mac(char* interface)
 {
     FILE* fileDescriptor;
@@ -113,8 +104,12 @@ char* get_interface_mac(char* interface)
     sprintf(cmdBuffer, "ip link show %s | awk '/ether/{printf $2}' > mac", interface);
     system(cmdBuffer);
     fileDescriptor = fopen("mac", "r");
-    fgets(stringMAC, 18, fileDescriptor);
-    system("rm -rf mac");
+    if (fileDescriptor)
+    {
+        fgets(stringMAC, 18, fileDescriptor);
+        system("rm -rf mac");
+    }
     fclose(fileDescriptor);
+
     return stringMAC;
 }
